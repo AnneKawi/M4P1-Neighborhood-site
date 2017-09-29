@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Neighbourhood-Map</title>
+</head>
+<body>
+    <ul id="cat-list" data-bind="foreach: catList">
+        <li data-bind="text: name, click: $parent.setCurrentCat"></li> <!-- wird durch eine Liste von Objekten gegangen, dann kann man direkt auf die Properties des jeweiligen Objektes zugreifen -->
+    </ul>
+
+    <div id="cat" data-bind="with: currentCat"> <!-- sorgt dafür, daß man nicht ständig currentCat().varName schreiben muss, das $parent weiter unten holt den incrementCounter auf die richtige Ebene zurück -->
+        <h2 id="cat-name" data-bind="text: name"></h2> <!-- immer aufpassen, daß die ko-Variablen effektiv Funktionen sind und ihr Wert per varName() abgerufen werden muss! -->
+        <h3 id="cat-level" data-bind="text: catLevel"></h3>
+        <div id="cat-count" data-bind="text: clickCount"></div>
+        <img id="cat-img" src="" alt="cute cat" data-bind="click: $parent.incrementCounter, attr: {src: imgSrc}"> <!-- bei einem Click auf das Bild wird IncrementCounter ausgeführt, und das Attribute Src wird mit Hilfe von attr: {src: ...} variabel ausgefüllt-->
+
+        <h3>Nicknames</h3>
+        <ul data-bind="foreach: nickNames"> <!-- Verbindung zu einem Observable-Array herstellen -->
+            <li data-bind="text: $data"></li> <!-- baut genau so viele Listenpunkte, wie Elemente in diesem Array sind und befüllt die Liste mit den Werten -->
+        </ul>
+
+    </div>
+    <script src="js/lib/knockout-3.2.0.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
