@@ -2,26 +2,60 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Neighbourhood-Map</title>
+    <link rel="stylesheet" href="css/style.css">
+
 </head>
 <body>
-    <ul id="cat-list" data-bind="foreach: catList">
-        <li data-bind="text: name, click: $parent.setCurrentCat"></li> <!-- wird durch eine Liste von Objekten gegangen, dann kann man direkt auf die Properties des jeweiligen Objektes zugreifen -->
-    </ul>
-
-    <div id="cat" data-bind="with: currentCat"> <!-- sorgt dafür, daß man nicht ständig currentCat().varName schreiben muss, das $parent weiter unten holt den incrementCounter auf die richtige Ebene zurück -->
-        <h2 id="cat-name" data-bind="text: name"></h2> <!-- immer aufpassen, daß die ko-Variablen effektiv Funktionen sind und ihr Wert per varName() abgerufen werden muss! -->
-        <h3 id="cat-level" data-bind="text: catLevel"></h3>
-        <div id="cat-count" data-bind="text: clickCount"></div>
-        <img id="cat-img" src="" alt="cute cat" data-bind="click: $parent.incrementCounter, attr: {src: imgSrc}"> <!-- bei einem Click auf das Bild wird IncrementCounter ausgeführt, und das Attribute Src wird mit Hilfe von attr: {src: ...} variabel ausgefüllt-->
-
-        <h3>Nicknames</h3>
-        <ul data-bind="foreach: nickNames"> <!-- Verbindung zu einem Observable-Array herstellen -->
-            <li data-bind="text: $data"></li> <!-- baut genau so viele Listenpunkte, wie Elemente in diesem Array sind und befüllt die Liste mit den Werten -->
-        </ul>
-
+    <div class="container">
+      <div class="options-box">
+        <h1>Find Your New NYC Home</h1>
+        <div>
+          <input id="show-listings" type="button" value="Show Listings">
+          <input id="hide-listings" type="button" value="Hide Listings">
+          <hr>
+          <span class="text"> Draw a shape to search within it for homes!</span>
+          <input id="toggle-drawing"  type="button" value="Drawing Tools">
+        </div>
+        <hr>
+        <div>
+          <input id="zoom-to-area-text" type="text" placeholder="Enter your favorite area!">
+          <input id="zoom-to-area" type="button" value="Zoom">
+        </div>
+        <hr>
+        <div>
+          <span class="text"> Within </span>
+          <select id="max-duration">
+            <option value="10">10 min</option>
+            <option value="15">15 min</option>
+            <option value="30">30 min</option>
+            <option value="60">1 hour</option>
+          </select>
+          <select id="mode">
+            <option value="DRIVING">drive</option>
+            <option value="WALKING">walk</option>
+            <option value="BICYCLING">bike</option>
+            <option value="TRANSIT">transit ride</option>
+          </select>
+          <span class="text">of</span>
+          <input id="search-within-time-text" type="text" placeholder="Ex: Google Office NYC or 75 9th Ave, New York, NY">
+          <input id="search-within-time" type="button" value="Go">
+        </div>
+        <hr>
+        <div>
+          <span class="text">Search for nearby places</span>
+          <input id="places-search" type="text" placeholder="Ex: Pizza delivery in NYC">
+          <input id="go-places" type="button" value="Go">
+        </div>
+      </div>
+      <div id="map"></div>
     </div>
     <script src="js/lib/knockout-3.2.0.js"></script>
     <script src="js/app.js"></script>
+    <script async defer
+        src=
+        "https://maps.googleapis.com/maps/api/js?libraries=places,geometry,drawing&key=AIzaSyC6oTX1U7I7DMXFtdTRkVxrwSTPWtn303A&v=3&callback=initMap">
+    </script>
 </body>
 </html>
