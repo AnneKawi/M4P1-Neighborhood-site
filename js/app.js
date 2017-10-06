@@ -88,11 +88,11 @@ var placeMarkers = [];
 // Several Tourist-Must-Sees in Dresden and the Marker for the Main Station.
 // Normally they'd be in a database instead.
 var locations = [
-  {title: 'Frauenkirche Dresden', location: {lat: 51.051873, lng: 13.741522}},
-  {title: 'Zwinger Dresden', location: {lat:  51.053368, lng: 13.734677}},
-  {title: 'Semper Opera House Dresden', location: {lat:  51.054226, lng: 13.735539}},
-  {title: 'Palais Großer Garten Dresden', location: {lat: 51.037879, lng: 13.762844}},
-  {title: 'Dresden Main Station', location: {lat: 51.040163, lng: 13.73224}},
+  {title: 'Frauenkirche Dresden', location: {lat: 51.051873, lng: 13.741522}, 'type': 'must-see'},
+  {title: 'Zwinger Dresden', location: {lat:  51.053368, lng: 13.734677}}, 'type': 'must-see',
+  {title: 'Semper Opera House Dresden', location: {lat:  51.054226, lng: 13.735539}, 'type': 'must-see'},
+  {title: 'Palais Großer Garten Dresden', location: {lat: 51.037879, lng: 13.762844}, 'type': 'must-see'},
+  {title: 'Dresden Main Station', location: {lat: 51.040163, lng: 13.73224}, 'type': 'train station'},
 ];
 
 function initMap() {
@@ -158,10 +158,6 @@ function initMap() {
       hideMarkers(markers);
     });
 
-    document.getElementById('zoom-to-area').addEventListener('click', function() {
-      zoomToArea();
-    });
-
     // Listen for the event fired when the user selects a prediction from the
     // picklist and retrieve more details for that place.
     searchBox.addListener('places_changed', function() {
@@ -171,6 +167,9 @@ function initMap() {
     // Listen for the event fired when the user selects a prediction and clicks
     // "go" more details for that place.
     document.getElementById('go-places').addEventListener('click', textSearchPlaces);
+
+    // finally show all markers to begin with
+    showListings();
 
 }
 
