@@ -4,30 +4,6 @@
     nickNames: ['Penny', 'Tiger', 'CAT'],
     clicks: 0,
     };
-var Cat2 = {
-    name: 'Merry',
-    picURL: "img/cat-1192026_960_720.jpg",
-    nickNames: ['Funnycat'],
-    clicks: 0,
-    };
-var Cat3 = {
-    name: 'Bella',
-    picURL: "img/cat-323262__340.jpg",
-    nickNames: ['Belle'],
-    clicks: 0,
-    };
-var Cat4 = {
-    name: 'Cherry',
-    picURL: "img/cat-2083492__340.jpg",
-    nickNames: ['Kirsche'],
-    clicks: 0,
-    };
-var Cat5 = {
-    name: 'Sleepy',
-    picURL: "img/cat-1634369__340.jpg",
-    nickNames: ['Zzzzz'],
-    clicks: 0,
-    };
 
 var initialCats = [Cat1, Cat2, Cat3, Cat4, Cat5];
 
@@ -74,26 +50,115 @@ var ViewModel = function() {
 ko.applyBindings(new ViewModel()) // hiermit werden die data-binds im HTML mit dem ViewModel verbunden und KnockoutJS kümmert sich jetzt um die Aktualisierung der Anzeige
 */
 var map;
-
-// Create a new blank array for all the listing markers.
-var markers = [];
-
-// This global polygon variable is to ensure only ONE polygon is rendered.
-var polygon = null;
-
-// Create placemarkers array to use in multiple functions to have control
-// over the number of places that show.
-var placeMarkers = [];
+var infoWindow;
+var searchBox;
 
 // Several Tourist-Must-Sees in Dresden and the Marker for the Main Station.
 // Normally they'd be in a database instead.
 var locations = [
-  {title: 'Frauenkirche Dresden', location: {lat: 51.051873, lng: 13.741522}, 'type': 'must-see'},
-  {title: 'Zwinger Dresden', location: {lat:  51.053368, lng: 13.734677}}, 'type': 'must-see',
-  {title: 'Semper Opera House Dresden', location: {lat:  51.054226, lng: 13.735539}, 'type': 'must-see'},
-  {title: 'Palais Großer Garten Dresden', location: {lat: 51.037879, lng: 13.762844}, 'type': 'must-see'},
-  {title: 'Dresden Main Station', location: {lat: 51.040163, lng: 13.73224}, 'type': 'train station'},
+  {title: 'Frauenkirche Dresden', location: {lat: 51.051873, lng: 13.741522}, type: 'must-see'},
+  {title: 'Zwinger Dresden', location: {lat:  51.053368, lng: 13.734677}, type: 'must-see'},
+  {title: 'Semper Opera House Dresden', location: {lat:  51.054226, lng: 13.735539}, type: 'must-see'},
+  {title: 'Palais Großer Garten Dresden', location: {lat: 51.037879, lng: 13.762844}, type: 'must-see'},
+  {title: 'Dresden Main Station', location: {lat: 51.040163, lng: 13.73224}, type: 'train station'},
 ];
+
+// a single Place Marker to keep Track of them an whether it is shown
+var placeMarker = function(data, defIcon, hiIcon) {
+    this.location = data.location;
+    this.title = data.title;
+    this.type = data.type;
+    this.shown = ko.observable(true);
+
+    // Create a marker per location, and put into markers array.
+    this.marker = new google.maps.Marker({
+        position: this.location,
+        title: this.title,
+        animation: google.maps.Animation.DROP,
+        icon: defIcon
+      });
+
+/*      // Create an onclick event to open the large infowindow at each marker.
+      this.marker.addListener('click', function() {
+        populateInfoWindow(this, infoWindow);
+      });
+*/
+    // Two event listeners - one for mouseover, one for mouseout,
+    // to change the colors back and forth.
+    this.marker.addListener('mouseover', function() {
+        this.setIcon(hiIcon);
+    });
+    this.marker.addListener('mouseout', function() {
+        this.setIcon(defIcon);
+    });
+
+    this.showMarker = function() {
+        this.marker.setMap(map);
+        };
+
+    this.hideMarker = function() {
+        this.marker.setMap(null);
+        };
+
+};
+
+var ViewModel = function() {
+    var self = this; //pointer zum viewModel, selbst wenn man im HTMl den this-context mit "with: ... " ändert (Bsp: with:currentCat => this ist dann innerhalb der currentCat(), was arg verwirrend werden kann)
+
+    // Create placemarkers array to use in multiple functions to have control
+    // over the number of places that show.
+    self.placeMarkers = ko.observableArray([]); // würde ich direkt das initialCats-Array reingeben, hätte ich nur einfache Objekte aber keine ko.observables,
+
+    //preparing Marker-Shapes & Info window
+    // Style the markers a bit. This will be our listing marker icon.
+    var defaultIcon = makeMarkerIcon('aae623');
+
+    // Create a "highlighted location" marker color for when the user
+    // mouses over the marker.
+    var highlightedIcon = makeMarkerIcon('FFFF24');
+
+    //taking care of the markers
+    locations.forEach(function(placeItem) { // => daher alle erst mal als Cat() implementieren und dann ab ins array (und immer schön aufpassen, den self-pointer zu nutzen um im Original-View-Model zu bleiben)
+        self.placeMarkers.push(new placeMarker(placeItem, defaultIcon, highlightedIcon));
+    });
+
+    self.currentMarker = ko.observable(self.placeMarkers()[0]);
+
+    self.setCurrentMarker = function(clickedMarker) {
+        self.currentMarker(clickedMarker);
+        };
+
+    // This function will loop through the markers array and display them all.
+    self.showListings = function() {
+        var bounds = new google.maps.LatLngBounds();
+        // Extend the boundaries of the map for each marker and display the marker
+        self.placeMarkers().forEach(function(markerItem) {
+          markerItem.showMarker();
+          bounds.extend(markerItem.marker.position);
+        });
+        map.fitBounds(bounds);
+    }
+
+    // This function will loop through the listings and hide them all.
+    self.hideMarkers = function() {
+        self.placeMarkers().forEach(function(markerItem) {
+            markerItem.hideMarker();
+        });
+    }
+
+    // Event listeners for the mouse-over-color-change
+    document.getElementById('show-listings').addEventListener('click', self.showListings);
+
+    document.getElementById('hide-listings').addEventListener('click', self.hideMarkers);
+
+    // Listen for the event fired when the user selects a prediction and clicks
+    // "go" more details for that place.
+    document.getElementById('go-places').addEventListener('click', textSearchPlaces);
+
+    // initally show all listings
+    self.showListings();
+
+};
 
 function initMap() {
     // Constructor creates a new map - only center and zoom are required.
@@ -103,60 +168,17 @@ function initMap() {
       mapTypeControl: false
     });
 
-    // This autocomplete is for use in the geocoder entry box.
+/*    // This autocomplete is for use in the geocoder entry box.
     var zoomAutocomplete = new google.maps.places.Autocomplete(
         document.getElementById('zoom-to-area-text'));
     // Bias the boundaries within the map for the zoom to area text.
     zoomAutocomplete.bindTo('bounds', map);
+*/
     // Create a searchbox in order to execute a places search
     var searchBox = new google.maps.places.SearchBox(
         document.getElementById('places-search'));
     // Bias the searchbox to within the bounds of the map.
     searchBox.setBounds(map.getBounds());
-
-
-    var largeInfowindow = new google.maps.InfoWindow();
-
-    // Style the markers a bit. This will be our listing marker icon.
-    var defaultIcon = makeMarkerIcon('aae623');
-
-    // Create a "highlighted location" marker color for when the user
-    // mouses over the marker.
-    var highlightedIcon = makeMarkerIcon('FFFF24');
-
-    // The following group uses the location array to create an array of markers on initialize.
-    for (var i = 0; i < locations.length; i++) {
-      // Get the position from the location array.
-      var position = locations[i].location;
-      var title = locations[i].title;
-      // Create a marker per location, and put into markers array.
-      var marker = new google.maps.Marker({
-        position: position,
-        title: title,
-        animation: google.maps.Animation.DROP,
-        icon: defaultIcon,
-        id: i
-      });
-      // Push the marker to our array of markers.
-      markers.push(marker);
-      // Create an onclick event to open the large infowindow at each marker.
-      marker.addListener('click', function() {
-        populateInfoWindow(this, largeInfowindow);
-      });
-      // Two event listeners - one for mouseover, one for mouseout,
-      // to change the colors back and forth.
-      marker.addListener('mouseover', function() {
-        this.setIcon(highlightedIcon);
-      });
-      marker.addListener('mouseout', function() {
-        this.setIcon(defaultIcon);
-      });
-    }
-    document.getElementById('show-listings').addEventListener('click', showListings);
-
-    document.getElementById('hide-listings').addEventListener('click', function() {
-      hideMarkers(markers);
-    });
 
     // Listen for the event fired when the user selects a prediction from the
     // picklist and retrieve more details for that place.
@@ -164,12 +186,11 @@ function initMap() {
       searchBoxPlaces(this);
     });
 
-    // Listen for the event fired when the user selects a prediction and clicks
-    // "go" more details for that place.
-    document.getElementById('go-places').addEventListener('click', textSearchPlaces);
+    // preparing the InfoWindow
+    infoWindow = new google.maps.InfoWindow();
 
-    // finally show all markers to begin with
-    showListings();
+    //starting the View Model after the google maps init, so that several google api-references are initiallised and callable
+    ko.applyBindings(new ViewModel())
 
 }
 
@@ -219,23 +240,6 @@ function populateInfoWindow(marker, infowindow) {
     }
 }
 
-// This function will loop through the markers array and display them all.
-function showListings() {
-    var bounds = new google.maps.LatLngBounds();
-    // Extend the boundaries of the map for each marker and display the marker
-    for (var i = 0; i < markers.length; i++) {
-      markers[i].setMap(map);
-      bounds.extend(markers[i].position);
-    }
-    map.fitBounds(bounds);
-}
-
-// This function will loop through the listings and hide them all.
-function hideMarkers(markers) {
-    for (var i = 0; i < markers.length; i++) {
-      markers[i].setMap(null);
-    }
-}
 
 // This function takes in a COLOR, and then creates a new marker
 // icon of that color. The icon will be 21 px wide by 34 high, have an origin
