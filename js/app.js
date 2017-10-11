@@ -63,42 +63,47 @@ var locations = [
   {title: 'Dresden Main Station', location: {lat: 51.040163, lng: 13.73224}, type: 'train station'},
 ];
 
-// a single Place Marker to keep Track of them an whether it is shown
+// a single Place Marker to keep Track of them and whether it is shown
 var placeMarker = function(data, defIcon, hiIcon) {
-    this.location = data.location;
-    this.title = data.title;
-    this.type = data.type;
-    this.shown = ko.observable(true);
+    self = this;
+    self.location = data.location;
+    self.title = data.title;
+    self.type = data.type;
+    self.wikipageid = ko.observable(null);
 
     // Create a marker per location, and put into markers array.
-    this.marker = new google.maps.Marker({
-        position: this.location,
-        title: this.title,
+    self.marker = new google.maps.Marker({
+        position: self.location,
+        title: self.title,
         animation: google.maps.Animation.DROP,
         icon: defIcon
-      });
-
-    // Create an onclick event to open the large infowindow at each marker.
-    this.marker.addListener('click', function() {
-        populateInfoWindow(this);
     });
+
+    //fetch the wikipedia-PageID for the marker
+    self.getThisWikiPageID = function(self) {
+        if (self.wikipageid() == null) {
+            getWikiPageId(self);
+        };
+        return self.wikipageid();
+    };
 
     // Two event listeners - one for mouseover, one for mouseout,
     // to change the colors back and forth.
-    this.marker.addListener('mouseover', function() {
+    self.marker.addListener('mouseover', function() {
         this.setIcon(hiIcon);
-    });
-    this.marker.addListener('mouseout', function() {
+        });
+
+    self.marker.addListener('mouseout', function() {
         this.setIcon(defIcon);
-    });
+        });
 
-    this.showMarker = function() {
-        this.marker.setMap(map);
-        };
+    self.showMarker = function(self) {
+        self.marker.setMap(map);
+    };
 
-    this.hideMarker = function() {
-        this.marker.setMap(null);
-        };
+    self.hideMarker = function(self) {
+        self.marker.setMap(null);
+    };
 
 };
 
@@ -122,18 +127,25 @@ var ViewModel = function() {
         self.placeMarkers.push(new placeMarker(placeItem, defaultIcon, highlightedIcon));
     });
 
-    self.currentMarker = ko.observable(self.placeMarkers()[0]);
+    // Create an onclick event to open the large infowindow at each marker.
+    self.placeMarkers().forEach(function(markerItem) {
+        markerItem.marker.addListener('click', function(marker) {
+            pageid = markerItem.getThisWikiPageID(markerItem);
+            if (pageid == null) {
+                markerItem.subcription = markerItem.wikipageid.subscribe(function(newpageid) {populateInfoWindow(markerItem.marker, newpageid)});
+            };
+            populateInfoWindow(markerItem.marker, pageid);
+             });
+        });
 
-    self.setCurrentMarker = function(clickedMarker) {
-        self.currentMarker(clickedMarker);
-        };
+    console.log(self.placeMarkers());
 
     // This function will loop through the markers array and display them all.
     self.showListings = function() {
         var bounds = new google.maps.LatLngBounds();
         // Extend the boundaries of the map for each marker and display the marker
         self.placeMarkers().forEach(function(markerItem) {
-          markerItem.showMarker();
+          markerItem.showMarker(markerItem);
           bounds.extend(markerItem.marker.position);
         });
         map.fitBounds(bounds);
@@ -142,7 +154,7 @@ var ViewModel = function() {
     // This function will loop through the listings and hide them all.
     self.hideMarkers = function() {
         self.placeMarkers().forEach(function(markerItem) {
-            markerItem.hideMarker();
+            markerItem.hideMarker(markerItem);
         });
     }
 
@@ -187,7 +199,10 @@ function initMap() {
     });
 
     // preparing the InfoWindow
-    infoWindow = new google.maps.InfoWindow();
+    infoWindow = new google.maps.InfoWindow({
+        content: '',
+        maxWidth: 300
+    });
 
     //starting the View Model after the google maps init, so that several google api-references are initiallised and callable
     ko.applyBindings(new ViewModel())
@@ -197,49 +212,102 @@ function initMap() {
 // This function populates the infowindow when the marker is clicked. We'll only allow
 // one infowindow which will open at the marker that is clicked, and populate based
 // on that markers position.
-function populateInfoWindow(marker) {
-    // Check to make sure the infowindow is not already opened on this marker.
-    if (infoWindow.marker != marker) {
-      // Clear the infowindow content to give the streetview time to load.
-      infoWindow.setContent('');
-      infoWindow.marker = marker;
-      // Make sure the marker property is cleared if the infowindow is closed.
-      infoWindow.addListener('closeclick', function() {
-        infoWindow.marker = null;
-      });
-      var streetViewService = new google.maps.StreetViewService();
-      var radius = 50;
-      // In case the status is OK, which means the pano was found, compute the
-      // position of the streetview image, then calculate the heading, then get a
-      // panorama from that and set the options
-      function getStreetView(data, status) {
-        if (status == google.maps.StreetViewStatus.OK) {
-          var nearStreetViewLocation = data.location.latLng;
-          var heading = google.maps.geometry.spherical.computeHeading(
-            nearStreetViewLocation, marker.position);
-            infoWindow.setContent('<div>' + marker.title + '</div><div id="pano"></div>');
-            var panoramaOptions = {
-              position: nearStreetViewLocation,
-              pov: {
-                heading: heading,
-                pitch: 30
-              }
-            };
-          var panorama = new google.maps.StreetViewPanorama(
-            document.getElementById('pano'), panoramaOptions);
-        } else {
-          infoWindow.setContent('<div>' + marker.title + '</div>' +
-            '<div>No Street View Found</div>');
+function populateInfoWindow(marker, pageid) {
+    // Check to make sure the infowindow is not already opened on this marker or the wikipedia-data wasn't found before
+    if (infoWindow.marker != marker || infoWindow.content.includes('Data Found') || infoWindow.content.includes('Timed Out')) {
+        // Clear the infowindow content
+        infoWindow.setContent('<div><strong>' + marker.title + '</strong></div>');
+        var infos = '';
+        infoWindow.marker = marker;
+        // Make sure the marker property is cleared if the infowindow is closed.
+        infoWindow.addListener('closeclick', function() {
+            infoWindow.marker = null;
+        });
+
+
+        // wikipedia-API
+        // adding the Wikipedia.ajax-request (das ein JSON-P oder Cors benötigt)
+        // Query zuammensetzen
+        if (pageid != null) {
+            var queryData = {"action": "query", "format": "json", "prop": "extracts", "pageids": pageid, "utf8": 1, "exchars": "500", "exintro": 1};
+
+            //Fehlerhandling vorbereiten (startet direkt die Funktion und wartet nun 8Sec bis es den Text der Wikipedia-Elemente ändert, bis dahin muss also der Request abgearbeitet sein)
+            var wikiRequestTimeout = setTimeout(function() {
+                infoWindow.setContent(infoWindow.content +
+                            '<div>Wikipedia Access Timed Out</div>');
+                }, 8000);
+
+            // Query schicken und Antwort verarbeiten
+            $.ajax( {
+                url: 'https://en.wikipedia.org/w/api.php',
+                data: queryData,
+                dataType: 'jsonp',
+                success: function(data) {
+                    wiki = data.query.pages[pageid];
+                    item = ('<p>' + wiki.extract+ '  ' +             // das Element des Artikels für das HTML zusammensetzen
+                        '<a href="http://en.wikipedia.org/?curid='+wiki.pageid+'">continue on wikipedia</a>'+
+                        '</p>' );
+                    infos = item;
+
+                    clearTimeout(wikiRequestTimeout); // stoppt die Timeout-Funktion, da sie nicht gebraucht wird - hat ja funktioniert
+
+                    if (infos.includes('continue on wikipedia')) {
+                        infoWindow.setContent(infoWindow.content + infos);
+                    } else {
+                        infoWindow.setContent(infoWindow.content +
+                            '<div>No Wikipedia Data Found</div>');
+                    };
+                },
+                error: function() {
+                            infoWindow.setContent(infoWindow.content +
+                            '<div>No Wikipedia Data Found</div>');
+                }
+            });
         }
-      }
-      // Use streetview service to get the closest streetview image within
-      // 50 meters of the markers position
-      streetViewService.getPanoramaByLocation(marker.position, radius, getStreetView);
-      // Open the infowindow on the correct marker.
-      infoWindow.open(map, marker);
-    }
+        //when pageid is null, set Content to Data missing
+        else {
+            infoWindow.setContent(infoWindow.content +
+            '<div>No Wikipedia Data Found</div>');
+
+            };
+
+
+
+    // Open the infowindow on the correct marker.
+    infoWindow.open(map, marker);
+    };
 }
 
+function getWikiPageId(placemarker) {
+    title = placemarker.title;
+    var queryData = {"action": "query", "format": "json", "prop": "info", "list": "search", "utf8": 1, "srsearch": title, "srlimit": "1",
+                     "srprop": "snippet", "srenablerewrites": "1" };
+
+    //Fehlerhandling vorbereiten (startet direkt die Funktion und wartet nun 8Sec bis es den Text der Wikipedia-Elemente ändert, bis dahin muss also der Request abgearbeitet sein)
+    var wikiRequestTimeout = setTimeout(function() {
+        infoWindow.setContent(infoWindow.content +
+                    '<div>Wikipedia Access Timed Out</div>');
+        }, 4000);
+
+    // Query schicken und Antwort verarbeiten
+    $.ajax( {
+        url: 'https://en.wikipedia.org/w/api.php',
+        data: queryData,
+        dataType: 'jsonp',
+        success: function(data) {
+            wikis = data.query.search;
+            if (wikis.length > 0) {
+                clearTimeout(wikiRequestTimeout); // stoppt die Timeout-Funktion, da sie nicht gebraucht wird - hat ja funktioniert
+                var pageid =  wikis[0].pageid;
+                placemarker.wikipageid(pageid);
+            };
+        },
+        error: function() {
+            infoWindow.setContent(infoWindow.content +
+                            '<div>No Wikipedia Data Found</div>');
+            }
+    });
+}
 
 // This function takes in a COLOR, and then creates a new marker
 // icon of that color. The icon will be 21 px wide by 34 high, have an origin
