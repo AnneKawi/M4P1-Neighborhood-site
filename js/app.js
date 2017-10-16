@@ -69,6 +69,7 @@ var placeMarker = function(data, defIcon, hiIcon) {
     self.location = data.location;
     self.title = data.title;
     self.type = data.type;
+    self.visible = ko.observable(true);
     self.wikipageid = ko.observable(null);
 
     // Create a marker per location, and put into markers array.
@@ -113,8 +114,7 @@ var ViewModel = function() {
     // Create placemarkers array to use in multiple functions to have control
     // over the number of places that show.
     self.placeMarkers = ko.observableArray([]); // würde ich direkt das initialCats-Array reingeben, hätte ich nur einfache Objekte aber keine ko.observables,
-    self.currentTypes = ko.observableArray([]);
-
+    self.currentMarkerType = ko.observable();
     //preparing Marker-Shapes & Info window
     // Style the markers a bit. This will be our listing marker icon.
     var defaultIcon = makeMarkerIcon('aae623');
@@ -128,13 +128,6 @@ var ViewModel = function() {
         self.placeMarkers.push(new placeMarker(placeItem, defaultIcon, highlightedIcon));
     });
 
- /*   self.CurrentTypes = ko.computed(function() {
-        typearray = ['All'];
-        ko.utils.arrayFilter(self.placeMarkers(), function(markerItem) {
-                return prod.genre == self.currentFilter();
-            });
-        });
-*/
     // Create an onclick event to open the large infowindow at each marker.
     self.placeMarkers().forEach(function(markerItem) {
         markerItem.marker.addListener('click', function(marker) {
@@ -147,15 +140,36 @@ var ViewModel = function() {
              });
         });
 
-    console.log(self.placeMarkers());
+    // create the marker-types array
+    self.markerTypes = ko.computed(function() {
+        array = [];
+        self.placeMarkers().forEach(function(marker) {
+            if (!array.includes(marker.type)) {
+                array.push(marker.type);
+                };
+            });
+        return array;
+    });
+
+    // set alle the markers to visible
+    self.showAllListings = function() {
+        self.placeMarkers().forEach(function(markerItem) {
+            markerItem.visible(true);
+            });
+        self.showListings();
+        };
 
     // This function will loop through the markers array and display them all.
     self.showListings = function() {
         var bounds = new google.maps.LatLngBounds();
         // Extend the boundaries of the map for each marker and display the marker
         self.placeMarkers().forEach(function(markerItem) {
-          markerItem.showMarker(markerItem);
-          bounds.extend(markerItem.marker.position);
+            if (markerItem.visible()) {
+                markerItem.showMarker(markerItem);
+                bounds.extend(markerItem.marker.position);
+            } else {
+                markerItem.hideMarker(markerItem);
+                };
         });
         map.fitBounds(bounds);
     }
@@ -168,7 +182,7 @@ var ViewModel = function() {
     }
 
     // Event listeners for the mouse-over-color-change
-    document.getElementById('show-listings').addEventListener('click', self.showListings);
+    document.getElementById('show-listings').addEventListener('click', self.showAllListings);
 
     document.getElementById('hide-listings').addEventListener('click', self.hideMarkers);
 
@@ -181,6 +195,26 @@ var ViewModel = function() {
             bounceMarker(clickedMarkerItem.marker);
             populateInfoWindow(clickedMarkerItem.marker, pageid);
         };
+
+    // choose MarkerTypes
+    self.chooseMarkers = ko.computed(function() {
+        array = [];
+        if(!self.currentMarkerType()) {
+            markers = self.placeMarkers();
+        } else {
+            markers = ko.utils.arrayFilter(self.placeMarkers(), function(plMarker) {
+                return plMarker.type == self.currentMarkerType();
+            });
+        };
+        self.placeMarkers().forEach(function(marker) {
+            if (markers.includes(marker)) {
+                marker.visible(true);
+            } else {
+                marker.visible(false);
+                };
+            });
+        self.showListings();
+    });
 
     // Listen for the event fired when the user selects a prediction and clicks
     // "go" more details for that place.

@@ -25,13 +25,13 @@
         <div>
           <form>
                 <div>Select Marker-Type</div>
-                <select data-bind='options: placeMarkers, optionsText: "type", optionsCaption: "All", value: type'> </select>
+                <select data-bind='options: markerTypes, value: currentMarkerType, optionsCaption: "All", multiple: "true"'> </select>
           </form>
           <span class="text">TODO A box to choose from</span>
           <input id="sort-places" type="text" placeholder="Ex: we'll see what for later">
           <input id="go-sort-places" type="button" value="Go">
           <ul id="places-list" data-bind="foreach: placeMarkers">
-            <li data-bind="text: title, click: $parent.setCurrentMarker"></li> <!-- wird durch eine Liste von Objekten gegangen, dann kann man direkt auf die Properties des jeweiligen Objektes zugreifen -->
+            <li data-bind="visible: visible, text: title, click: $parent.setCurrentMarker"></li> <!-- wird durch eine Liste von Objekten gegangen, dann kann man direkt auf die Properties des jeweiligen Objektes zugreifen -->
           </ul>
 
         </div>
