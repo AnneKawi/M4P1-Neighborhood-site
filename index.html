@@ -23,6 +23,10 @@
         </div>
         <hr>
         <div>
+          <form>
+                <div>Select Marker-Type</div>
+                <select data-bind='options: placeMarkers, optionsText: "type", optionsCaption: "All", value: type'> </select>
+          </form>
           <span class="text">TODO A box to choose from</span>
           <input id="sort-places" type="text" placeholder="Ex: we'll see what for later">
           <input id="go-sort-places" type="button" value="Go">
@@ -32,7 +36,7 @@
 
         </div>
       </div>
-      <div id="map"></div>
+      <div id="map">waiting for the google map</div>
     </div>
     <script async defer
         src=

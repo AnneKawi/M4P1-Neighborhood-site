@@ -59,7 +59,7 @@ var locations = [
   {title: 'Frauenkirche Dresden', location: {lat: 51.051873, lng: 13.741522}, type: 'must-see'},
   {title: 'Zwinger Dresden', location: {lat:  51.053368, lng: 13.734677}, type: 'must-see'},
   {title: 'Semper Opera House Dresden', location: {lat:  51.054226, lng: 13.735539}, type: 'must-see'},
-  {title: 'Palais Großer Garten Dresden', location: {lat: 51.037879, lng: 13.762844}, type: 'must-see'},
+  {title: 'Großer Garten Dresden', location: {lat: 51.037879, lng: 13.762844}, type: 'park'},
   {title: 'Dresden Main Station', location: {lat: 51.040163, lng: 13.73224}, type: 'train station'},
 ];
 
@@ -113,6 +113,7 @@ var ViewModel = function() {
     // Create placemarkers array to use in multiple functions to have control
     // over the number of places that show.
     self.placeMarkers = ko.observableArray([]); // würde ich direkt das initialCats-Array reingeben, hätte ich nur einfache Objekte aber keine ko.observables,
+    self.currentTypes = ko.observableArray([]);
 
     //preparing Marker-Shapes & Info window
     // Style the markers a bit. This will be our listing marker icon.
@@ -127,6 +128,13 @@ var ViewModel = function() {
         self.placeMarkers.push(new placeMarker(placeItem, defaultIcon, highlightedIcon));
     });
 
+ /*   self.CurrentTypes = ko.computed(function() {
+        typearray = ['All'];
+        ko.utils.arrayFilter(self.placeMarkers(), function(markerItem) {
+                return prod.genre == self.currentFilter();
+            });
+        });
+*/
     // Create an onclick event to open the large infowindow at each marker.
     self.placeMarkers().forEach(function(markerItem) {
         markerItem.marker.addListener('click', function(marker) {
@@ -134,6 +142,7 @@ var ViewModel = function() {
             if (pageid == null) {
                 markerItem.subcription = markerItem.wikipageid.subscribe(function(newpageid) {populateInfoWindow(markerItem.marker, newpageid)});
             };
+            bounceMarker(markerItem.marker);
             populateInfoWindow(markerItem.marker, pageid);
              });
         });
@@ -162,6 +171,16 @@ var ViewModel = function() {
     document.getElementById('show-listings').addEventListener('click', self.showListings);
 
     document.getElementById('hide-listings').addEventListener('click', self.hideMarkers);
+
+    // Treatment of CurrentMarker
+    self.setCurrentMarker = function(clickedMarkerItem) {
+            pageid = clickedMarkerItem.getThisWikiPageID(clickedMarkerItem);
+            if (pageid == null) {
+                clickedMarkerItem.subcription = clickedMarkerItem.wikipageid.subscribe(function(newpageid) {populateInfoWindow(clickedMarkerItem.marker, newpageid)});
+            };
+            bounceMarker(clickedMarkerItem.marker);
+            populateInfoWindow(clickedMarkerItem.marker, pageid);
+        };
 
     // Listen for the event fired when the user selects a prediction and clicks
     // "go" more details for that place.
@@ -215,12 +234,20 @@ function initMap() {
 function populateInfoWindow(marker, pageid) {
     // Check to make sure the infowindow is not already opened on this marker or the wikipedia-data wasn't found before
     if (infoWindow.marker != marker || infoWindow.content.includes('Data Found') || infoWindow.content.includes('Timed Out')) {
+        // stop a bouncing marker if the InfoWindow is reset to another
+        if (infoWindow.marker != null && infoWindow.marker != marker && infoWindow.marker.getAnimation() != null) {
+            infoWindow.marker.setAnimation(null);
+        };
+
         // Clear the infowindow content
         infoWindow.setContent('<div><strong>' + marker.title + '</strong></div>');
         var infos = '';
         infoWindow.marker = marker;
         // Make sure the marker property is cleared if the infowindow is closed.
         infoWindow.addListener('closeclick', function() {
+            if (infoWindow.marker != null && infoWindow.marker.getAnimation() != null) {
+                bounceMarker(infoWindow.marker);
+                };
             infoWindow.marker = null;
         });
 
@@ -322,6 +349,18 @@ function makeMarkerIcon(markerColor) {
       new google.maps.Size(21,34));
     return markerImage;
 }
+
+// bounce the marker and stop it when necessary
+// bounce the marker
+bounceMarker = function(marker) {
+    if (marker.getAnimation() !== null) {
+      marker.setAnimation(null);
+    } else {
+      marker.setAnimation(google.maps.Animation.BOUNCE);
+    }
+};
+
+
 
 // This function takes the input value in the find nearby area text input
 // locates it, and then zooms into that area. This is so that the user can
