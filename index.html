@@ -18,7 +18,7 @@
         <hr>
         <div>
           <form>
-                <div>Select Marker-Type <select data-bind='options: markerTypes, value: currentMarkerType, optionsCaption: "All"'> </select></div>
+                <div>Select Location-Type <select data-bind='options: markerTypes, value: currentMarkerType, optionsCaption: "All"'> </select></div>
           </form>
           <ul id="places-list" data-bind="foreach: placeMarkers">
             <li data-bind="visible: ['All', undefined, null, type].includes($parent.currentMarkerType()), text: title, click: $parent.setCurrentMarker"></li> <!-- wird durch eine Liste von Objekten gegangen, dann kann man direkt auf die Properties des jeweiligen Objektes zugreifen -->
