@@ -12,26 +12,16 @@
       <div class="options-box">
         <h1>Welcome to Dresden</h1>
         <div>
-          <input id="show-listings" type="button" value="Show Listings">
+          <input id="show-listings" type="button" value="Show All Listings">
           <input id="hide-listings" type="button" value="Hide Listings">
         </div>
         <hr>
         <div>
-          <span class="text">Search for nearby places</span>
-          <input id="places-search" type="text" placeholder="Ex: Pizza delivery in NYC">
-          <input id="go-places" type="button" value="Go">
-        </div>
-        <hr>
-        <div>
           <form>
-                <div>Select Marker-Type</div>
-                <select data-bind='options: markerTypes, value: currentMarkerType, optionsCaption: "All", multiple: "true"'> </select>
+                <div>Select Marker-Type <select data-bind='options: markerTypes, value: currentMarkerType, optionsCaption: "All"'> </select></div>
           </form>
-          <span class="text">TODO A box to choose from</span>
-          <input id="sort-places" type="text" placeholder="Ex: we'll see what for later">
-          <input id="go-sort-places" type="button" value="Go">
           <ul id="places-list" data-bind="foreach: placeMarkers">
-            <li data-bind="visible: visible, text: title, click: $parent.setCurrentMarker"></li> <!-- wird durch eine Liste von Objekten gegangen, dann kann man direkt auf die Properties des jeweiligen Objektes zugreifen -->
+            <li data-bind="visible: ['All', undefined, null, type].includes($parent.currentMarkerType()), text: title, click: $parent.setCurrentMarker"></li> <!-- wird durch eine Liste von Objekten gegangen, dann kann man direkt auf die Properties des jeweiligen Objektes zugreifen -->
           </ul>
 
         </div>

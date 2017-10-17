@@ -115,6 +115,7 @@ var ViewModel = function() {
     // over the number of places that show.
     self.placeMarkers = ko.observableArray([]); // würde ich direkt das initialCats-Array reingeben, hätte ich nur einfache Objekte aber keine ko.observables,
     self.currentMarkerType = ko.observable();
+    self.hideMarkers = false;
     //preparing Marker-Shapes & Info window
     // Style the markers a bit. This will be our listing marker icon.
     var defaultIcon = makeMarkerIcon('aae623');
@@ -123,8 +124,8 @@ var ViewModel = function() {
     // mouses over the marker.
     var highlightedIcon = makeMarkerIcon('FFFF24');
 
-    //taking care of the markers
-    locations.forEach(function(placeItem) { // => daher alle erst mal als Cat() implementieren und dann ab ins array (und immer schön aufpassen, den self-pointer zu nutzen um im Original-View-Model zu bleiben)
+    // initialising the PlaceMarkers
+    locations.forEach(function(placeItem) {
         self.placeMarkers.push(new placeMarker(placeItem, defaultIcon, highlightedIcon));
     });
 
@@ -153,38 +154,42 @@ var ViewModel = function() {
 
     // set alle the markers to visible
     self.showAllListings = function() {
-        self.placeMarkers().forEach(function(markerItem) {
-            markerItem.visible(true);
-            });
-        self.showListings();
-        };
+        self.hideMarkers = false;
+        self.currentMarkerType(null);
+    }
 
     // This function will loop through the markers array and display them all.
     self.showListings = function() {
         var bounds = new google.maps.LatLngBounds();
+        var count = 0;
         // Extend the boundaries of the map for each marker and display the marker
         self.placeMarkers().forEach(function(markerItem) {
-            if (markerItem.visible()) {
+            if (markerItem.visible() && !self.hideMarkers) {
                 markerItem.showMarker(markerItem);
                 bounds.extend(markerItem.marker.position);
+                count += 1;
             } else {
                 markerItem.hideMarker(markerItem);
                 };
         });
-        map.fitBounds(bounds);
+        if (count > 0) {map.fitBounds(bounds);};
+        // correct zoom to not zoom in more than necessary (the customer can do that if he likes later)
+        if (map.getZoom() > 16) {
+            map.setZoom(16);
+            };
     }
 
     // This function will loop through the listings and hide them all.
-    self.hideMarkers = function() {
-        self.placeMarkers().forEach(function(markerItem) {
-            markerItem.hideMarker(markerItem);
-        });
+    self.hideAllMarkers = function() {
+        self.hideMarkers = true;
+        self.currentMarkerType(null);
+        self.hideMarkers = false;
     }
 
     // Event listeners for the mouse-over-color-change
     document.getElementById('show-listings').addEventListener('click', self.showAllListings);
 
-    document.getElementById('hide-listings').addEventListener('click', self.hideMarkers);
+    document.getElementById('hide-listings').addEventListener('click', self.hideAllMarkers);
 
     // Treatment of CurrentMarker
     self.setCurrentMarker = function(clickedMarkerItem) {
@@ -192,13 +197,14 @@ var ViewModel = function() {
             if (pageid == null) {
                 clickedMarkerItem.subcription = clickedMarkerItem.wikipageid.subscribe(function(newpageid) {populateInfoWindow(clickedMarkerItem.marker, newpageid)});
             };
+            clickedMarkerItem.visible(true);
+            clickedMarkerItem.showMarker(clickedMarkerItem);
             bounceMarker(clickedMarkerItem.marker);
             populateInfoWindow(clickedMarkerItem.marker, pageid);
         };
 
-    // choose MarkerTypes
+    // choose Markers to be shown on map
     self.chooseMarkers = ko.computed(function() {
-        array = [];
         if(!self.currentMarkerType()) {
             markers = self.placeMarkers();
         } else {
@@ -207,7 +213,7 @@ var ViewModel = function() {
             });
         };
         self.placeMarkers().forEach(function(marker) {
-            if (markers.includes(marker)) {
+            if (markers.includes(marker) && !self.hideMarkers) {
                 marker.visible(true);
             } else {
                 marker.visible(false);
@@ -216,9 +222,6 @@ var ViewModel = function() {
         self.showListings();
     });
 
-    // Listen for the event fired when the user selects a prediction and clicks
-    // "go" more details for that place.
-    document.getElementById('go-places').addEventListener('click', textSearchPlaces);
 
     // initally show all listings
     self.showListings();
@@ -231,24 +234,6 @@ function initMap() {
       center: {lat: 51.050409, lng: 13.737262},
       zoom: 13,
       mapTypeControl: false
-    });
-
-/*    // This autocomplete is for use in the geocoder entry box.
-    var zoomAutocomplete = new google.maps.places.Autocomplete(
-        document.getElementById('zoom-to-area-text'));
-    // Bias the boundaries within the map for the zoom to area text.
-    zoomAutocomplete.bindTo('bounds', map);
-*/
-    // Create a searchbox in order to execute a places search
-    var searchBox = new google.maps.places.SearchBox(
-        document.getElementById('places-search'));
-    // Bias the searchbox to within the bounds of the map.
-    searchBox.setBounds(map.getBounds());
-
-    // Listen for the event fired when the user selects a prediction from the
-    // picklist and retrieve more details for that place.
-    searchBox.addListener('places_changed', function() {
-      searchBoxPlaces(this);
     });
 
     // preparing the InfoWindow
@@ -280,7 +265,7 @@ function populateInfoWindow(marker, pageid) {
         // Make sure the marker property is cleared if the infowindow is closed.
         infoWindow.addListener('closeclick', function() {
             if (infoWindow.marker != null && infoWindow.marker.getAnimation() != null) {
-                bounceMarker(infoWindow.marker);
+                infoWindow.marker.setAnimation(null);
                 };
             infoWindow.marker = null;
         });
@@ -387,11 +372,8 @@ function makeMarkerIcon(markerColor) {
 // bounce the marker and stop it when necessary
 // bounce the marker
 bounceMarker = function(marker) {
-    if (marker.getAnimation() !== null) {
-      marker.setAnimation(null);
-    } else {
-      marker.setAnimation(google.maps.Animation.BOUNCE);
-    }
+    marker.setAnimation(google.maps.Animation.BOUNCE);
+
 };
 
 
