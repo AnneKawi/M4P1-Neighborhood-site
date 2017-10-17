@@ -1,59 +1,18 @@
-/* var Cat1 = {
-    name: 'Kitty',
-    picURL: "img/22252709_010df3379e_z.jpg",
-    nickNames: ['Penny', 'Tiger', 'CAT'],
-    clicks: 0,
-    };
+/*
+    **** Neighborhood-Map-Project *****
+    ****** Welcome to Dresden *********
 
-var initialCats = [Cat1, Cat2, Cat3, Cat4, Cat5];
+This code is meant to display a google map centered on Dresden in Germany. On it there are five locations to be displayed, marked with markers.
+* Clicking the markers or the location names at the sidebar of the webpage makes the corresponding marker bounce and tries to fetch an extract of the wikipedia-description of the location.
+* the locations may be filtered on the sidebar, they may all be hidden and all be shown by clicking on the corresponding buttons
 
-//KnockoutJS-Bereich mit der Einzelkatze und dem View-Model zum Data-Handling
-var Cat = function(data) {
-    this.clickCount = ko.observable(data.clicks);
-    this.name = ko.observable(data.name);
-    this.nickNames = ko.observableArray(data.nickNames);
-    this.imgSrc = ko.observable(data.picURL);
-
-    this.catLevel = ko.computed(function() {
-            if (this.clickCount() < 4) {
-                return 'Newborn';
-            } else if (this.clickCount() < 10) {
-                return 'Kitten';
-            } else if (this.clickCount() >= 10) {
-                return 'Cat';
-            };
-        }, this);
-
-};
-
-var ViewModel = function() {
-    var self = this; //pointer zum viewModel, selbst wenn man im HTMl den this-context mit "with: ... " ändert (Bsp: with:currentCat => this ist dann innerhalb der currentCat(), was arg verwirrend werden kann)
-
-    self.catList = ko.observableArray([]); // würde ich direkt das initialCats-Array reingeben, hätte ich nur einfache Objekte aber keine ko.observables,
-
-    initialCats.forEach(function(catItem) { // => daher alle erst mal als Cat() implementieren und dann ab ins array (und immer schön aufpassen, den self-pointer zu nutzen um im Original-View-Model zu bleiben)
-        self.catList.push(new Cat(catItem));
-    });
-
-    self.currentCat = ko.observable(self.catList()[0]);
-
-    self.setCurrentCat = function(clickedCat) {
-        self.currentCat(clickedCat);
-        };
-
-    self.incrementCounter = function() {
-        self.currentCat().clickCount(self.currentCat().clickCount() + 1);
-        };
-
-};
-
-ko.applyBindings(new ViewModel()) // hiermit werden die data-binds im HTML mit dem ViewModel verbunden und KnockoutJS kümmert sich jetzt um die Aktualisierung der Anzeige
 */
+
 var map;
 var infoWindow;
 var searchBox;
 
-// Several Tourist-Must-Sees in Dresden and the Marker for the Main Station.
+// Several Tourist-Must-Sees in Dresden, a place to get a rest and the Marker for the Main Station.
 // Normally they'd be in a database instead.
 var locations = [
   {title: 'Frauenkirche Dresden', location: {lat: 51.051873, lng: 13.741522}, type: 'must-see'},
@@ -80,7 +39,7 @@ var placeMarker = function(data, defIcon, hiIcon) {
         icon: defIcon
     });
 
-    //fetch the wikipedia-PageID for the marker
+    //fetch and return the wikipedia-PageID for the marker
     self.getThisWikiPageID = function(self) {
         if (self.wikipageid() == null) {
             getWikiPageId(self);
@@ -98,6 +57,7 @@ var placeMarker = function(data, defIcon, hiIcon) {
         this.setIcon(defIcon);
         });
 
+    // funcions to show and hide the marker of this PlaceMarker
     self.showMarker = function(self) {
         self.marker.setMap(map);
     };
@@ -109,14 +69,17 @@ var placeMarker = function(data, defIcon, hiIcon) {
 };
 
 var ViewModel = function() {
-    var self = this; //pointer zum viewModel, selbst wenn man im HTMl den this-context mit "with: ... " ändert (Bsp: with:currentCat => this ist dann innerhalb der currentCat(), was arg verwirrend werden kann)
+    var self = this;
 
     // Create placemarkers array to use in multiple functions to have control
     // over the number of places that show.
-    self.placeMarkers = ko.observableArray([]); // würde ich direkt das initialCats-Array reingeben, hätte ich nur einfache Objekte aber keine ko.observables,
+    self.placeMarkers = ko.observableArray([]);
+    // keep an eye on the currently selected location type to be displayed
     self.currentMarkerType = ko.observable();
+    // var to be able to hide all the markers at once
     self.hideMarkers = false;
-    //preparing Marker-Shapes & Info window
+
+    //preparing Marker-Shapes
     // Style the markers a bit. This will be our listing marker icon.
     var defaultIcon = makeMarkerIcon('aae623');
 
@@ -133,6 +96,7 @@ var ViewModel = function() {
     self.placeMarkers().forEach(function(markerItem) {
         markerItem.marker.addListener('click', function(marker) {
             pageid = markerItem.getThisWikiPageID(markerItem);
+            // if pageid cannot be retrieved straight away, put a subscription on the marker to display the extract connected to the pageid, whenever wikipedia responds with the value
             if (pageid == null) {
                 markerItem.subcription = markerItem.wikipageid.subscribe(function(newpageid) {populateInfoWindow(markerItem.marker, newpageid)});
             };
@@ -141,7 +105,7 @@ var ViewModel = function() {
              });
         });
 
-    // create the marker-types array
+    // create the marker-types array (ready to react to new location entries, though that functionality is not provided in this map)
     self.markerTypes = ko.computed(function() {
         array = [];
         self.placeMarkers().forEach(function(marker) {
@@ -158,7 +122,7 @@ var ViewModel = function() {
         self.currentMarkerType(null);
     }
 
-    // This function will loop through the markers array and display them all.
+    // This function will loop through the markers array, display the visible ones and hide the rest
     self.showListings = function() {
         var bounds = new google.maps.LatLngBounds();
         var count = 0;
@@ -173,25 +137,25 @@ var ViewModel = function() {
                 };
         });
         if (count > 0) {map.fitBounds(bounds);};
-        // correct zoom to not zoom in more than necessary (the customer can do that if he likes later)
+        // correct zoom to not zoom in more than necessary (customers may do that if they like later)
         if (map.getZoom() > 16) {
             map.setZoom(16);
             };
     }
 
-    // This function will loop through the listings and hide them all.
+    // This function will loop through the listings and hide them all, afterwards resetting the hide value, so that markers may be filtered and shown again
     self.hideAllMarkers = function() {
         self.hideMarkers = true;
         self.currentMarkerType(null);
         self.hideMarkers = false;
     }
 
-    // Event listeners for the mouse-over-color-change
+    // Event listeners for the show and hide buttons for all markers
     document.getElementById('show-listings').addEventListener('click', self.showAllListings);
 
     document.getElementById('hide-listings').addEventListener('click', self.hideAllMarkers);
 
-    // Treatment of CurrentMarker
+    // Handling and showing the Marker that was clicked on the sidebar, switching the InfoWindow to it
     self.setCurrentMarker = function(clickedMarkerItem) {
             pageid = clickedMarkerItem.getThisWikiPageID(clickedMarkerItem);
             if (pageid == null) {
@@ -222,14 +186,13 @@ var ViewModel = function() {
         self.showListings();
     });
 
-
     // initally show all listings
     self.showListings();
 
 };
 
 function initMap() {
-    // Constructor creates a new map - only center and zoom are required.
+    // Create new google Map, center on Dresden Old Town
     map = new google.maps.Map(document.getElementById('map'), {
       center: {lat: 51.050409, lng: 13.737262},
       zoom: 13,
@@ -242,27 +205,26 @@ function initMap() {
         maxWidth: 300
     });
 
-    //starting the View Model after the google maps init, so that several google api-references are initiallised and callable
+    // starting the View Model after the google maps init, so that several google api-references are initiallised and callable
     ko.applyBindings(new ViewModel())
-
 }
 
-// This function populates the infowindow when the marker is clicked. We'll only allow
-// one infowindow which will open at the marker that is clicked, and populate based
-// on that markers position.
+// This function populates the infowindow when the marker is clicked.
+// There is only one window, which is relocated to the next marker as necessary
 function populateInfoWindow(marker, pageid) {
     // Check to make sure the infowindow is not already opened on this marker or the wikipedia-data wasn't found before
     if (infoWindow.marker != marker || infoWindow.content.includes('Data Found') || infoWindow.content.includes('Timed Out')) {
+
         // stop a bouncing marker if the InfoWindow is reset to another
         if (infoWindow.marker != null && infoWindow.marker != marker && infoWindow.marker.getAnimation() != null) {
             infoWindow.marker.setAnimation(null);
         };
 
-        // Clear the infowindow content
+        // Clear the infowindow content and reset to new marker
         infoWindow.setContent('<div><strong>' + marker.title + '</strong></div>');
         var infos = '';
         infoWindow.marker = marker;
-        // Make sure the marker property is cleared if the infowindow is closed.
+        // Make sure the marker property is cleared and stops bouncing if the infowindow is closed.
         infoWindow.addListener('closeclick', function() {
             if (infoWindow.marker != null && infoWindow.marker.getAnimation() != null) {
                 infoWindow.marker.setAnimation(null);
@@ -273,29 +235,29 @@ function populateInfoWindow(marker, pageid) {
 
         // wikipedia-API
         // adding the Wikipedia.ajax-request (das ein JSON-P oder Cors benötigt)
-        // Query zuammensetzen
+        // build the query only if there is a pageid
         if (pageid != null) {
             var queryData = {"action": "query", "format": "json", "prop": "extracts", "pageids": pageid, "utf8": 1, "exchars": "500", "exintro": 1};
 
-            //Fehlerhandling vorbereiten (startet direkt die Funktion und wartet nun 8Sec bis es den Text der Wikipedia-Elemente ändert, bis dahin muss also der Request abgearbeitet sein)
+            // prepare error handling by starting a timeout, that waits 8sec before killing the process and showing the message in the InfoWindow
             var wikiRequestTimeout = setTimeout(function() {
                 infoWindow.setContent(infoWindow.content +
                             '<div>Wikipedia Access Timed Out</div>');
                 }, 8000);
 
-            // Query schicken und Antwort verarbeiten
+            // send query and process answer
             $.ajax( {
                 url: 'https://en.wikipedia.org/w/api.php',
                 data: queryData,
                 dataType: 'jsonp',
                 success: function(data) {
                     wiki = data.query.pages[pageid];
-                    item = ('<p>' + wiki.extract+ '  ' +             // das Element des Artikels für das HTML zusammensetzen
+                    item = ('<p>' + wiki.extract + '  ' +
                         '<a href="http://en.wikipedia.org/?curid='+wiki.pageid+'">continue on wikipedia</a>'+
                         '</p>' );
                     infos = item;
 
-                    clearTimeout(wikiRequestTimeout); // stoppt die Timeout-Funktion, da sie nicht gebraucht wird - hat ja funktioniert
+                    clearTimeout(wikiRequestTimeout); // stop the timeout, the extract is here
 
                     if (infos.includes('continue on wikipedia')) {
                         infoWindow.setContent(infoWindow.content + infos);
@@ -310,32 +272,31 @@ function populateInfoWindow(marker, pageid) {
                 }
             });
         }
-        //when pageid is null, set Content to Data missing
+        // when pageid is null, set Content to Data missing
         else {
             infoWindow.setContent(infoWindow.content +
             '<div>No Wikipedia Data Found</div>');
 
             };
 
-
-
     // Open the infowindow on the correct marker.
     infoWindow.open(map, marker);
     };
 }
 
+// fetch the wikipedia-pageid for the requested location, if it is not yet saved in the PlaceMarker
 function getWikiPageId(placemarker) {
     title = placemarker.title;
     var queryData = {"action": "query", "format": "json", "prop": "info", "list": "search", "utf8": 1, "srsearch": title, "srlimit": "1",
                      "srprop": "snippet", "srenablerewrites": "1" };
 
-    //Fehlerhandling vorbereiten (startet direkt die Funktion und wartet nun 8Sec bis es den Text der Wikipedia-Elemente ändert, bis dahin muss also der Request abgearbeitet sein)
+    // prepare error-handling (wait 4 sec for Wikipedia to return answer before killing the process)
     var wikiRequestTimeout = setTimeout(function() {
         infoWindow.setContent(infoWindow.content +
                     '<div>Wikipedia Access Timed Out</div>');
         }, 4000);
 
-    // Query schicken und Antwort verarbeiten
+    // send query and process answer
     $.ajax( {
         url: 'https://en.wikipedia.org/w/api.php',
         data: queryData,
@@ -343,9 +304,9 @@ function getWikiPageId(placemarker) {
         success: function(data) {
             wikis = data.query.search;
             if (wikis.length > 0) {
-                clearTimeout(wikiRequestTimeout); // stoppt die Timeout-Funktion, da sie nicht gebraucht wird - hat ja funktioniert
+                clearTimeout(wikiRequestTimeout); // stop the timeout
                 var pageid =  wikis[0].pageid;
-                placemarker.wikipageid(pageid);
+                placemarker.wikipageid(pageid); // save pageid to the PlaceMarker
             };
         },
         error: function() {
@@ -369,158 +330,7 @@ function makeMarkerIcon(markerColor) {
     return markerImage;
 }
 
-// bounce the marker and stop it when necessary
 // bounce the marker
 bounceMarker = function(marker) {
     marker.setAnimation(google.maps.Animation.BOUNCE);
-
 };
-
-
-
-// This function takes the input value in the find nearby area text input
-// locates it, and then zooms into that area. This is so that the user can
-// show all listings, then decide to focus on one area of the map.
-function zoomToArea() {
-    // Initialize the geocoder.
-    var geocoder = new google.maps.Geocoder();
-    // Get the address or place that the user entered.
-    var address = document.getElementById('zoom-to-area-text').value;
-    // Make sure the address isn't blank.
-    if (address == '') {
-      window.alert('You must enter an area, or address.');
-    } else {
-      // Geocode the address/area entered to get the center. Then, center the map
-      // on it and zoom in
-      geocoder.geocode(
-        { address: address,
-          componentRestrictions: {locality: 'New York'}
-        }, function(results, status) {
-          if (status == google.maps.GeocoderStatus.OK) {
-            map.setCenter(results[0].geometry.location);
-            map.setZoom(15);
-          } else {
-            window.alert('We could not find that location - try entering a more' +
-                ' specific place.');
-          }
-        });
-      }
-}
-
-// This function fires when the user selects a searchbox picklist item.
-// It will do a nearby search using the selected query string or place.
-function searchBoxPlaces(searchBox) {
-    hideMarkers(placeMarkers);
-    var places = searchBox.getPlaces();
-    if (places.length == 0) {
-      window.alert('We did not find any places matching that search!');
-    } else {
-    // For each place, get the icon, name and location.
-      createMarkersForPlaces(places);
-    }
-}
-
-// This function firest when the user select "go" on the places search.
-// It will do a nearby search using the entered query string or place.
-function textSearchPlaces() {
-    var bounds = map.getBounds();
-    hideMarkers(placeMarkers);
-    var placesService = new google.maps.places.PlacesService(map);
-    placesService.textSearch({
-      query: document.getElementById('places-search').value,
-      bounds: bounds
-    }, function(results, status) {
-      if (status === google.maps.places.PlacesServiceStatus.OK) {
-        createMarkersForPlaces(results);
-      }
-    });
-}
-
-// This function creates markers for each place found in either places search.
-function createMarkersForPlaces(places) {
-    var bounds = new google.maps.LatLngBounds();
-    for (var i = 0; i < places.length; i++) {
-      var place = places[i];
-      var icon = {
-        url: place.icon,
-        size: new google.maps.Size(35, 35),
-        origin: new google.maps.Point(0, 0),
-        anchor: new google.maps.Point(15, 34),
-        scaledSize: new google.maps.Size(25, 25)
-      };
-      // Create a marker for each place.
-      var marker = new google.maps.Marker({
-        map: map,
-        icon: icon,
-        title: place.name,
-        position: place.geometry.location,
-        id: place.place_id
-      });
-      // Create a single infowindow to be used with the place details information
-      // so that only one is open at once.
-      var placeInfoWindow = new google.maps.InfoWindow();
-      // If a marker is clicked, do a place details search on it in the next function.
-      marker.addListener('click', function() {
-        if (placeInfoWindow.marker == this) {
-          console.log("This infowindow already is on this marker!");
-        } else {
-          getPlacesDetails(this, placeInfoWindow);
-        }
-      });
-      placeMarkers.push(marker);
-      if (place.geometry.viewport) {
-        // Only geocodes have viewport.
-        bounds.union(place.geometry.viewport);
-      } else {
-        bounds.extend(place.geometry.location);
-      }
-    }
-    map.fitBounds(bounds);
-}
-
-// This is the PLACE DETAILS search - it's the most detailed so it's only
-// executed when a marker is selected, indicating the user wants more
-// details about that place.
-function getPlacesDetails(marker, infowindow) {
-    var service = new google.maps.places.PlacesService(map);
-    service.getDetails({
-    placeId: marker.id
-    }, function(place, status) {
-    if (status === google.maps.places.PlacesServiceStatus.OK) {
-      // Set the marker property on this infowindow so it isn't created again.
-      infowindow.marker = marker;
-      var innerHTML = '<div>';
-      if (place.name) {
-        innerHTML += '<strong>' + place.name + '</strong>';
-      }
-      if (place.formatted_address) {
-        innerHTML += '<br>' + place.formatted_address;
-      }
-      if (place.formatted_phone_number) {
-        innerHTML += '<br>' + place.formatted_phone_number;
-      }
-      if (place.opening_hours) {
-        innerHTML += '<br><br><strong>Hours:</strong><br>' +
-            place.opening_hours.weekday_text[0] + '<br>' +
-            place.opening_hours.weekday_text[1] + '<br>' +
-            place.opening_hours.weekday_text[2] + '<br>' +
-            place.opening_hours.weekday_text[3] + '<br>' +
-            place.opening_hours.weekday_text[4] + '<br>' +
-            place.opening_hours.weekday_text[5] + '<br>' +
-            place.opening_hours.weekday_text[6];
-      }
-      if (place.photos) {
-        innerHTML += '<br><br><img src="' + place.photos[0].getUrl(
-            {maxHeight: 100, maxWidth: 200}) + '">';
-      }
-      innerHTML += '</div>';
-      infowindow.setContent(innerHTML);
-      infowindow.open(map, marker);
-      // Make sure the marker property is cleared if the infowindow is closed.
-      infowindow.addListener('closeclick', function() {
-        infowindow.marker = null;
-      });
-    }
-    });
-}
-
