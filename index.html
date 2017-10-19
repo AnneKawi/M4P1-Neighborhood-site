@@ -23,7 +23,6 @@
           <ul id="places-list" data-bind="foreach: placeMarkers">
             <li data-bind="visible: ['All', undefined, null, type].includes($parent.currentMarkerType()), text: title, click: $parent.setCurrentMarker"></li>
           </ul>
-
         </div>
       </div>
       <div id="map">waiting for the google map</div>
