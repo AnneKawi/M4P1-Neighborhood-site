@@ -8,12 +8,12 @@
 
 </head>
 <body>
-    <div class="container">
-      <div class="options-box">
+    <main class="container">
+      <aside class="options-box">
         <h1>Welcome to Dresden</h1>
         <div class="show-all-buttons">
-          <input id="show-listings" type="button" value="Show All Listings">
-          <input id="hide-listings" type="button" value="Hide Listings">
+          <input id="show-listings" type="button" value="Show All Listings" data-bind="click: showAllListings">
+          <input id="hide-listings" type="button" value="Hide Listings"  data-bind="click: hideAllMarkers">
         </div>
         <hr>
         <div class="locations">
@@ -24,15 +24,17 @@
             <li data-bind="visible: ['All', undefined, null, type].includes($parent.currentMarkerType()), text: title, click: $parent.setCurrentMarker"></li>
           </ul>
         </div>
-      </div>
-      <div id="map">waiting for the google map</div>
-    </div>
-    <script async defer
-        src=
-        "https://maps.googleapis.com/maps/api/js?libraries=places,geometry,drawing&key=AIzaSyC6oTX1U7I7DMXFtdTRkVxrwSTPWtn303A&v=3&callback=initMap">
-    </script>
+      </aside>
+      <map id="map">waiting for the google map</map>
+    </main>
     <script src="js/lib/jquery.min.js"></script>
     <script src="js/lib/knockout-3.2.0.js"></script>
+    <script src="js/locations.js"></script>
     <script src="js/app.js"></script>
+    <script async defer
+        src=
+        "https://maps.googleapis.com/maps/api/js?libraries=places,geometry,drawing&key=AIzaSyC6oTX1U7I7DMXFtdTRkVxrwSTPWtn303A&v=3&callback=initMap"
+        onerror="mapError()">
+    </script>
 </body>
 </html>

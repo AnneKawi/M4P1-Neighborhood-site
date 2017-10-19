@@ -12,18 +12,8 @@ var map;
 var infoWindow;
 var searchBox;
 
-// Several Tourist-Must-Sees in Dresden, a place to get a rest and the Marker for the Main Station.
-// Normally they'd be in a database instead.
-var locations = [
-  {title: 'Frauenkirche Dresden', location: {lat: 51.051873, lng: 13.741522}, type: 'must-see'},
-  {title: 'Zwinger Dresden', location: {lat:  51.053368, lng: 13.734677}, type: 'must-see'},
-  {title: 'Semper Opera House Dresden', location: {lat:  51.054226, lng: 13.735539}, type: 'must-see'},
-  {title: 'Großer Garten Dresden', location: {lat: 51.037879, lng: 13.762844}, type: 'park'},
-  {title: 'Dresden Main Station', location: {lat: 51.040163, lng: 13.73224}, type: 'train station'},
-];
-
 // a single Place Marker to keep Track of them and whether it is shown
-var placeMarker = function(data, defIcon, hiIcon) {
+var PlaceMarker = function(data, defIcon, hiIcon) {
     self = this;
     self.location = data.location;
     self.title = data.title;
@@ -68,6 +58,7 @@ var placeMarker = function(data, defIcon, hiIcon) {
 
 };
 
+// the View model to handle locations markers and whatever else need handling
 var ViewModel = function() {
     var self = this;
 
@@ -89,7 +80,7 @@ var ViewModel = function() {
 
     // initialising the PlaceMarkers
     locations.forEach(function(placeItem) {
-        self.placeMarkers.push(new placeMarker(placeItem, defaultIcon, highlightedIcon));
+        self.placeMarkers.push(new PlaceMarker(placeItem, defaultIcon, highlightedIcon));
     });
 
     // Create an onclick event to open the large infowindow at each marker.
@@ -150,11 +141,6 @@ var ViewModel = function() {
         self.hideMarkers = false;
     };
 
-    // Event listeners for the show and hide buttons for all markers
-    document.getElementById('show-listings').addEventListener('click', self.showAllListings);
-
-    document.getElementById('hide-listings').addEventListener('click', self.hideAllMarkers);
-
     // Handling and showing the Marker that was clicked on the sidebar, switching the InfoWindow to it
     self.setCurrentMarker = function(clickedMarkerItem) {
             pageid = clickedMarkerItem.getThisWikiPageID(clickedMarkerItem);
@@ -192,6 +178,7 @@ var ViewModel = function() {
 
 };
 
+// initialise the map and start the view model
 function initMap() {
     // Create new google Map, center on Dresden Old Town
     map = new google.maps.Map(document.getElementById('map'), {
@@ -208,16 +195,22 @@ function initMap() {
 
     // starting the View Model after the google maps init, so that several google api-references are initiallised and callable
     ko.applyBindings(new ViewModel());
-}
+};
+
+// the function to tell the user that something is wrong with google map
+function mapError(error) {
+    map = document.getElementById('map');
+    map.replaceChild(document.createTextNode("The google map could not be initialised. Please check your Internet connection and refresh your browser."), map.firstChild);
+};
 
 // This function populates the infowindow when the marker is clicked.
 // There is only one window, which is relocated to the next marker as necessary
 function populateInfoWindow(marker, pageid) {
     // Check to make sure the infowindow is not already opened on this marker or the wikipedia-data wasn't found before
-    if (infoWindow.marker != marker || infoWindow.content.includes('Data Found') || infoWindow.content.includes('Timed Out')) {
+    if (infoWindow.marker != marker || !infoWindow.content.includes('continue on wikipedia</a>')) {
 
         // stop a bouncing marker if the InfoWindow is reset to another
-        if (infoWindow.marker !== (null || undefined) && infoWindow.marker != marker && infoWindow.marker.getAnimation() !== null) {
+        if (infoWindow.marker !== undefined && infoWindow.marker != marker && infoWindow.marker.getAnimation() !== null) {
             infoWindow.marker.setAnimation(null);
         }
 
@@ -227,10 +220,10 @@ function populateInfoWindow(marker, pageid) {
         infoWindow.marker = marker;
         // Make sure the marker property is cleared and stops bouncing if the infowindow is closed.
         infoWindow.addListener('closeclick', function() {
-            if (infoWindow.marker !== null && infoWindow.marker.getAnimation() !== null) {
+            if (infoWindow.marker !== undefined && infoWindow.marker.getAnimation() !== null) {
                 infoWindow.marker.setAnimation(null);
                 }
-            infoWindow.marker = null;
+            infoWindow.marker = undefined;
         });
 
 
@@ -261,7 +254,7 @@ function populateInfoWindow(marker, pageid) {
                     clearTimeout(wikiRequestTimeout); // stop the timeout, the extract is here
 
                     if (infos.includes('continue on wikipedia')) {
-                        infoWindow.setContent(infoWindow.content + infos);
+                        infoWindow.setContent('<div><strong>' + marker.title + '</strong></div>' + infos);
                     } else {
                         infoWindow.setContent(infoWindow.content +
                             '<div>No Wikipedia Data Found</div>');
@@ -273,11 +266,14 @@ function populateInfoWindow(marker, pageid) {
                 }
             });
         }
-        // when pageid is null, set Content to Data missing
+        // when pageid is null, wait 8sec in case pageID and wikipedia-data can be retrieved, elseset Content to Data missing
         else {
-            infoWindow.setContent(infoWindow.content +
-            '<div>No Wikipedia Data Found</div>');
-
+            var wikiRequestTimeout = setTimeout(function() {
+                if (!infoWindow.content.includes('continue on wikipedia</a>')) {
+                    infoWindow.setContent('<div><strong>' + marker.title + '</strong></div>' +
+                                '<div>No Wikipedia Data Found</div>');
+                }
+                }, 8000);
             }
 
     // Open the infowindow on the correct marker.
