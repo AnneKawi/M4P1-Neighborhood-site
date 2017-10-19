@@ -195,13 +195,13 @@ function initMap() {
 
     // starting the View Model after the google maps init, so that several google api-references are initiallised and callable
     ko.applyBindings(new ViewModel());
-};
+}
 
 // the function to tell the user that something is wrong with google map
 function mapError(error) {
     map = document.getElementById('map');
     map.replaceChild(document.createTextNode("The google map could not be initialised. Please check your Internet connection and refresh your browser."), map.firstChild);
-};
+}
 
 // This function populates the infowindow when the marker is clicked.
 // There is only one window, which is relocated to the next marker as necessary
@@ -215,7 +215,8 @@ function populateInfoWindow(marker, pageid) {
         }
 
         // Clear the infowindow content and reset to new marker
-        infoWindow.setContent('<div><strong>' + marker.title + '</strong></div>');
+        var windowTitle = '<div><strong>' + marker.title + '</strong></div>';
+        infoWindow.setContent(windowTitle);
         var infos = '';
         infoWindow.marker = marker;
         // Make sure the marker property is cleared and stops bouncing if the infowindow is closed.
@@ -235,7 +236,7 @@ function populateInfoWindow(marker, pageid) {
 
             // prepare error handling by starting a timeout, that waits 8sec before killing the process and showing the message in the InfoWindow
             var wikiRequestTimeout = setTimeout(function() {
-                infoWindow.setContent(infoWindow.content +
+                infoWindow.setContent(windowTitle +
                             '<div>Wikipedia Access Timed Out</div>');
                 }, 8000);
 
@@ -254,23 +255,23 @@ function populateInfoWindow(marker, pageid) {
                     clearTimeout(wikiRequestTimeout); // stop the timeout, the extract is here
 
                     if (infos.includes('continue on wikipedia')) {
-                        infoWindow.setContent('<div><strong>' + marker.title + '</strong></div>' + infos);
+                        infoWindow.setContent(windowTitle + infos);
                     } else {
-                        infoWindow.setContent(infoWindow.content +
+                        infoWindow.setContent(windowTitle +
                             '<div>No Wikipedia Data Found</div>');
                     }
                 },
                 error: function() {
-                            infoWindow.setContent(infoWindow.content +
+                            infoWindow.setContent(windowTitle +
                             '<div>No Wikipedia Data Found</div>');
                 }
             });
         }
-        // when pageid is null, wait 8sec in case pageID and wikipedia-data can be retrieved, elseset Content to Data missing
+        // when pageid is null, wait 8sec in case pageID and wikipedia-data can be retrieved, else set Content to Data missing
         else {
-            var wikiRequestTimeout = setTimeout(function() {
+            var wikiWaitForPageIDTimeout = setTimeout(function() {
                 if (!infoWindow.content.includes('continue on wikipedia</a>')) {
-                    infoWindow.setContent('<div><strong>' + marker.title + '</strong></div>' +
+                    infoWindow.setContent(windowTitle +
                                 '<div>No Wikipedia Data Found</div>');
                 }
                 }, 8000);
