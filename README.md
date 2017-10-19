@@ -1,4 +1,4 @@
-# Project Neighborhood-Map (FSND Module)
+# Project Neighborhood-Map (FSND Module 4)
 ============================
 
 This code is for a webpage that displays a sidebar and a google map centered on Dresden in Germany. On it there are five locations to be displayed, marked with markers.
@@ -7,10 +7,10 @@ This code is for a webpage that displays a sidebar and a google map centered on 
 
 ## prerequisites
 - a modern browser
-- internet access open to
+- internet access open to accessing google maps and wikipedia
 
 ## how to get it running
-- download the repo
+- download/clone the repo
 - open index.html in your favourite browser
 
 ## APIs used
