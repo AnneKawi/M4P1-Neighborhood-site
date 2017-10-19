@@ -18,6 +18,7 @@ body {
 .container {
     height: 100%;
     display: flex;
+    flex-direction: row;
 }
 
 input {
@@ -31,9 +32,45 @@ h1 {
     text-align: center;
 }
 
+.options-box {
+    background: #fff;
+    border: 1px solid #999;
+    border-radius: 3px;
+    height: 100%;
+    line-height: 35px;
+    padding: 10px;
+    text-align: left;
+    max-width: 30vw;
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+
+.show-all-buttons {
+    display: flex;
+    flex-flow: row wrap;
+    justify-content: center;
+    min-height: 25px;
+}
+
 #hide-listings,
 #show-listings {
-    width: 48%;
+    display: block;
+    min-width: 110px;
+    min-height: 20px;
+    width: 45%;
+    margin: 3px;
+    text-align: center;
+}
+
+.show-all-buttons::after {
+   content: " ";
+   display: block;
+   height: 1px;
+   clear: both;
+   width: 100%;
+   margin: auto;
 }
 
 hr {
@@ -41,6 +78,18 @@ hr {
     height: 1px;
     margin: 20px 0 20px 0;
     border: none;
+}
+
+.locations {
+    display: block;
+    min-height: 50px;
+    margin: auto;
+    margin-top: 5px;
+    align-self: flex-start;
+}
+
+.text {
+    font-size: 12px;
 }
 
 #map {
@@ -51,41 +100,40 @@ hr {
     width: 70vw;
 }
 
-.options-box {
-    background: #fff;
-    border: 1px solid #999;
-    border-radius: 3px;
-    height: 100%;
-    line-height: 35px;
-    padding: 10px 10px 30px 10px;
-    text-align: left;
-    max-width: 30vw;
-    margin: auto;
+/* with a media screen with less than 750px, the site looks better if rendered in a different layout */
+@media screen and (max-width: 750px) {
+    .container {
+        flex-direction: column-reverse;
+        justify-content: flex-start;
+    }
+
+    .options-box {
+        border: 1px solid #999;
+        border-radius: 3px;
+        height: 60vh;
+        overflow: auto;
+        line-height: 20px;
+        padding: 10px 10px 10px 10px;
+        text-align: left;
+        width: 100vw;
+        max-width: calc(100vw - 20px);
+        margin: auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    hr {
+        display: block;
+        margin: 10px 0 5px 0;
+    }
+
+    #map {
+        height: 40vh;
+        margin: 10px;
+        width: calc(100vw - 20px);
+        align-items: center;
+    }
+
 }
 
-#pano {
-    width: 200px;
-    height: 200px;
-}
-
-#places-search {
-    width: 84%;
-}
-
-.text {
-    font-size: 12px;
-}
-
-#toggle-drawing {
-    width: 27%;
-    position: relative;
-    margin-left: 10px;
-}
-
-#zoom-to-area-text {
-    width: 70%;
-}
-
-#zoom-to-area {
-    width: 24%;
-}
