@@ -41,9 +41,9 @@ var placeMarker = function(data, defIcon, hiIcon) {
 
     //fetch and return the wikipedia-PageID for the marker
     self.getThisWikiPageID = function(self) {
-        if (self.wikipageid() == null) {
+        if (self.wikipageid() === null) {
             getWikiPageId(self);
-        };
+        }
         return self.wikipageid();
     };
 
@@ -97,9 +97,9 @@ var ViewModel = function() {
         markerItem.marker.addListener('click', function(marker) {
             pageid = markerItem.getThisWikiPageID(markerItem);
             // if pageid cannot be retrieved straight away, put a subscription on the marker to display the extract connected to the pageid, whenever wikipedia responds with the value
-            if (pageid == null) {
-                markerItem.subcription = markerItem.wikipageid.subscribe(function(newpageid) {populateInfoWindow(markerItem.marker, newpageid)});
-            };
+            if (pageid === null) {
+                markerItem.subcription = markerItem.wikipageid.subscribe(function(newpageid) {populateInfoWindow(markerItem.marker, newpageid);});
+            }
             bounceMarker(markerItem.marker);
             populateInfoWindow(markerItem.marker, pageid);
              });
@@ -111,7 +111,7 @@ var ViewModel = function() {
         self.placeMarkers().forEach(function(marker) {
             if (!array.includes(marker.type)) {
                 array.push(marker.type);
-                };
+                }
             });
         return array;
     });
@@ -120,7 +120,7 @@ var ViewModel = function() {
     self.showAllListings = function() {
         self.hideMarkers = false;
         self.currentMarkerType(null);
-    }
+    };
 
     // This function will loop through the markers array, display the visible ones and hide the rest
     self.showListings = function() {
@@ -134,21 +134,21 @@ var ViewModel = function() {
                 count += 1;
             } else {
                 markerItem.hideMarker(markerItem);
-                };
+            }
         });
-        if (count > 0) {map.fitBounds(bounds);};
+        if (count > 0) {map.fitBounds(bounds);}
         // correct zoom to not zoom in more than necessary (customers may do that if they like later)
         if (map.getZoom() > 16) {
             map.setZoom(16);
-            };
-    }
+            }
+    };
 
     // This function will loop through the listings and hide them all, afterwards resetting the hide value, so that markers may be filtered and shown again
     self.hideAllMarkers = function() {
         self.hideMarkers = true;
         self.currentMarkerType(null);
         self.hideMarkers = false;
-    }
+    };
 
     // Event listeners for the show and hide buttons for all markers
     document.getElementById('show-listings').addEventListener('click', self.showAllListings);
@@ -158,9 +158,9 @@ var ViewModel = function() {
     // Handling and showing the Marker that was clicked on the sidebar, switching the InfoWindow to it
     self.setCurrentMarker = function(clickedMarkerItem) {
             pageid = clickedMarkerItem.getThisWikiPageID(clickedMarkerItem);
-            if (pageid == null) {
-                clickedMarkerItem.subcription = clickedMarkerItem.wikipageid.subscribe(function(newpageid) {populateInfoWindow(clickedMarkerItem.marker, newpageid)});
-            };
+            if (pageid === null) {
+                clickedMarkerItem.subcription = clickedMarkerItem.wikipageid.subscribe(function(newpageid) {populateInfoWindow(clickedMarkerItem.marker, newpageid);});
+            }
             clickedMarkerItem.visible(true);
             clickedMarkerItem.showMarker(clickedMarkerItem);
             bounceMarker(clickedMarkerItem.marker);
@@ -175,13 +175,14 @@ var ViewModel = function() {
             markers = ko.utils.arrayFilter(self.placeMarkers(), function(plMarker) {
                 return plMarker.type == self.currentMarkerType();
             });
-        };
+        }
         self.placeMarkers().forEach(function(marker) {
             if (markers.includes(marker) && !self.hideMarkers) {
                 marker.visible(true);
-            } else {
-                marker.visible(false);
-                };
+                }
+                else {
+                    marker.visible(false);
+                }
             });
         self.showListings();
     });
@@ -206,7 +207,7 @@ function initMap() {
     });
 
     // starting the View Model after the google maps init, so that several google api-references are initiallised and callable
-    ko.applyBindings(new ViewModel())
+    ko.applyBindings(new ViewModel());
 }
 
 // This function populates the infowindow when the marker is clicked.
@@ -216,9 +217,9 @@ function populateInfoWindow(marker, pageid) {
     if (infoWindow.marker != marker || infoWindow.content.includes('Data Found') || infoWindow.content.includes('Timed Out')) {
 
         // stop a bouncing marker if the InfoWindow is reset to another
-        if (infoWindow.marker != null && infoWindow.marker != marker && infoWindow.marker.getAnimation() != null) {
+        if (infoWindow.marker !== (null || undefined) && infoWindow.marker != marker && infoWindow.marker.getAnimation() !== null) {
             infoWindow.marker.setAnimation(null);
-        };
+        }
 
         // Clear the infowindow content and reset to new marker
         infoWindow.setContent('<div><strong>' + marker.title + '</strong></div>');
@@ -226,9 +227,9 @@ function populateInfoWindow(marker, pageid) {
         infoWindow.marker = marker;
         // Make sure the marker property is cleared and stops bouncing if the infowindow is closed.
         infoWindow.addListener('closeclick', function() {
-            if (infoWindow.marker != null && infoWindow.marker.getAnimation() != null) {
+            if (infoWindow.marker !== null && infoWindow.marker.getAnimation() !== null) {
                 infoWindow.marker.setAnimation(null);
-                };
+                }
             infoWindow.marker = null;
         });
 
@@ -236,7 +237,7 @@ function populateInfoWindow(marker, pageid) {
         // wikipedia-API
         // adding the Wikipedia.ajax-request (das ein JSON-P oder Cors benötigt)
         // build the query only if there is a pageid
-        if (pageid != null) {
+        if (pageid !== null) {
             var queryData = {"action": "query", "format": "json", "prop": "extracts", "pageids": pageid, "utf8": 1, "exchars": "500", "exintro": 1};
 
             // prepare error handling by starting a timeout, that waits 8sec before killing the process and showing the message in the InfoWindow
@@ -264,7 +265,7 @@ function populateInfoWindow(marker, pageid) {
                     } else {
                         infoWindow.setContent(infoWindow.content +
                             '<div>No Wikipedia Data Found</div>');
-                    };
+                    }
                 },
                 error: function() {
                             infoWindow.setContent(infoWindow.content +
@@ -277,11 +278,11 @@ function populateInfoWindow(marker, pageid) {
             infoWindow.setContent(infoWindow.content +
             '<div>No Wikipedia Data Found</div>');
 
-            };
+            }
 
     // Open the infowindow on the correct marker.
     infoWindow.open(map, marker);
-    };
+    }
 }
 
 // fetch the wikipedia-pageid for the requested location, if it is not yet saved in the PlaceMarker
@@ -307,7 +308,7 @@ function getWikiPageId(placemarker) {
                 clearTimeout(wikiRequestTimeout); // stop the timeout
                 var pageid =  wikis[0].pageid;
                 placemarker.wikipageid(pageid); // save pageid to the PlaceMarker
-            };
+            }
         },
         error: function() {
             infoWindow.setContent(infoWindow.content +
